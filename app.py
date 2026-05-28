@@ -121,7 +121,7 @@ st.markdown(
 st.markdown(
     '<div class="section-block">'
     '<div class="section-num">STEP 01</div>'
-    '<div class="section-title">고객 데이터 업로드</div>'
+    '<div class="section-title">데이터 업로드</div>'
     '<div class="section-desc">분석할 고객 데이터를 업로드하거나, 테스트 데이터로 바로 시연할 수 있습니다.</div>'
     '</div>', unsafe_allow_html=True)
 
