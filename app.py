@@ -121,18 +121,18 @@ st.markdown(
 st.markdown(
     '<div class="section-block">'
     '<div class="section-num">STEP 01</div>'
-    '<div class="section-title">데이터 업로드</div>'
-    '<div class="section-desc">분석할 고객 데이터를 업로드하거나, 테스트 데이터로 바로 시연할 수 있습니다.</div>'
+    '<div class="section-title">고객 데이터 업로드</div>'
+    '<div class="section-desc">분석할 고객 데이터를 업로드하거나, 더미 데이터로 바로 시연할 수 있습니다.</div>'
     '</div>', unsafe_allow_html=True)
 
 uploaded = st.file_uploader("CSV 또는 Excel · 컬럼: 고객번호, Var1~Var18, (선택) Score", type=["csv", "xlsx"])
-use_demo = st.button("내장 테스트 데이터로 시연하기")
+use_demo = st.button("내장 더미 데이터로 시연하기")
 
 df = None
 if use_demo or "demo" in st.session_state:
     st.session_state["demo"] = True
     df = generate_synthetic_customers(n=80, seed=2025, start_idx=1)
-    st.success(f"내장 테스트 데이터 {len(df)}명 로드 완료")
+    st.success(f"내장 더미 데이터 {len(df)}명 로드 완료")
 elif uploaded:
     try:
         df = pd.read_csv(uploaded) if uploaded.name.endswith(".csv") else pd.read_excel(uploaded)
@@ -226,36 +226,97 @@ if df is not None:
         st.markdown(
             '<div class="section-block">'
             '<div class="section-num">STEP 03</div>'
-            '<div class="section-title">분석 결과 — 이탈 원인 진단</div>'
-            '<div class="section-desc">변수 기여도와 온톨로지 매핑을 통해 고객별 이탈 원인을 진단합니다.</div>'
+            '<div class="section-title">분석 결과 — 리텐션 대상 통계</div>'
+            '<div class="section-desc">임계값을 넘은 전체 고객의 위험도 분포·유형 구성·신규 패턴을 한눈에 확인합니다.</div>'
             '</div>', unsafe_allow_html=True)
 
         n_types = int(high["주요유형"].nunique()) if len(high) > 0 else 0
+        total_n = len(df)
+        high_n = len(high)
+        ratio = (high_n / total_n * 100) if total_n else 0
+        avg_score = float(high["Score"].mean()) if high_n else 0.0
+        max_score = float(high["Score"].max()) if high_n else 0.0
+        top_type = high["주요유형"].value_counts().index[0] if high_n else "—"
+        top_type_cnt = int(high["주요유형"].value_counts().iloc[0]) if high_n else 0
+
         st.markdown(
             f'<div class="kpi-grid">'
             f'<div class="kpi-cell"><div class="kpi-label">전체 분석 고객</div>'
-            f'<div class="kpi-value">{len(df)}<span class="kpi-unit">명</span></div></div>'
-            f'<div class="kpi-cell"><div class="kpi-label">고위험 고객 · Score ≥ {thr:.2f}</div>'
-            f'<div class="kpi-value warn">{len(high)}<span class="kpi-unit">명</span></div></div>'
+            f'<div class="kpi-value">{total_n:,}<span class="kpi-unit">명</span></div></div>'
+            f'<div class="kpi-cell"><div class="kpi-label">고위험 대상 · Score ≥ {thr:.2f}</div>'
+            f'<div class="kpi-value warn">{high_n:,}<span class="kpi-unit">명 · {ratio:.1f}%</span></div></div>'
             f'<div class="kpi-cell"><div class="kpi-label">감지된 이탈 유형</div>'
             f'<div class="kpi-value accent">{n_types}<span class="kpi-unit">개</span></div></div>'
             f'<div class="kpi-cell"><div class="kpi-label">신규 복합 패턴</div>'
-            f'<div class="kpi-value gold">{len(newp)}<span class="kpi-unit">명</span></div></div>'
+            f'<div class="kpi-value gold">{len(newp):,}<span class="kpi-unit">명</span></div></div>'
             f'</div>', unsafe_allow_html=True)
 
-        if len(high) > 0:
+        if high_n > 0:
+            # ── 요약 라인 ──
+            st.markdown(
+                f'<div class="summary-line">'
+                f'고위험 대상 <b>{high_n:,}명</b> 중 평균 위험 점수 <span class="acc">{avg_score:.3f}</span>, '
+                f'최고 점수 <span class="warn-t">{max_score:.3f}</span>, '
+                f'주요 유형은 <b>{TYPE_ICONS.get(top_type,"")} {top_type}</b> '
+                f'<b>{top_type_cnt:,}명 ({top_type_cnt/high_n*100:.1f}%)</b> 입니다.'
+                f'</div>', unsafe_allow_html=True)
+
+            # ── 점수 분포 ──
+            score_max = max(max_score, thr + 0.01)
+            edges = [thr,
+                     thr + (score_max - thr) * 0.25,
+                     thr + (score_max - thr) * 0.5,
+                     thr + (score_max - thr) * 0.75,
+                     score_max + 1e-6]
+            # Avoid duplicate edges if score_max == thr
+            edges = sorted(set(round(e, 4) for e in edges))
+            if len(edges) >= 2:
+                bin_counts = pd.cut(high["Score"], bins=edges, include_lowest=True).value_counts().sort_index()
+                bin_total = bin_counts.sum() or 1
+                max_bin_cnt = bin_counts.max() or 1
+
+                dist_rows = ""
+                for i, (interval, cnt) in enumerate(bin_counts.items()):
+                    width_pct = (cnt / max_bin_cnt * 100) if max_bin_cnt else 0
+                    ratio_pct = cnt / bin_total * 100
+                    # 마지막 구간(상위 25%)은 빨간색, 그 다음은 주황색
+                    fill_cls = "high" if i == len(bin_counts) - 1 else ("mid" if i == len(bin_counts) - 2 else "")
+                    label = f"{interval.left:.3f} ~ {interval.right:.3f}"
+                    dist_rows += (
+                        f'<div class="dist-row">'
+                        f'<span class="dist-label">{label}</span>'
+                        f'<div class="dist-track"><div class="dist-fill {fill_cls}" style="width:{width_pct:.1f}%"></div></div>'
+                        f'<span class="dist-meta"><b>{cnt:,}</b>명 · {ratio_pct:.1f}%</span>'
+                        f'</div>'
+                    )
+                # 상위 25% (마지막 구간) 인원 강조
+                top_quartile_cnt = int(bin_counts.iloc[-1]) if len(bin_counts) > 0 else 0
+                top_quartile_pct = top_quartile_cnt / bin_total * 100 if bin_total else 0
+                st.markdown(
+                    f'<div class="dist-block">'
+                    f'<div class="dist-title">이탈 위험도 분포 · 4분위 구간</div>'
+                    f'{dist_rows}'
+                    f'<div class="dist-note">상위 25% 구간(점수 {edges[-2]:.3f} 이상)에 <b>{top_quartile_cnt:,}명</b>이 분포 — 최우선 리텐션 타겟입니다.</div>'
+                    f'</div>', unsafe_allow_html=True)
+
+            # ── 유형별 분포 (강화) ──
+            type_avg_score = high.groupby("주요유형")["Score"].mean().to_dict()
             td = high["주요유형"].value_counts().to_dict()
             html = '<div class="type-grid">'
             for tp, cnt in sorted(td.items(), key=lambda x: x[1], reverse=True):
                 s, _ = TYPE_STRATEGY[tp]
+                pct = cnt / high_n * 100
+                avg_s = type_avg_score.get(tp, 0)
                 html += (
                     f'<div class="type-cell">'
                     f'<div class="type-head">'
                     f'<div class="type-icon">{TYPE_ICONS.get(tp,"")}</div>'
                     f'<div class="type-name">{tp}</div>'
                     f'</div>'
-                    f'<div class="type-count">{cnt}<span class="kpi-unit">명</span></div>'
-                    f'<div class="type-strat">{s}</div>'
+                    f'<div><span class="type-count">{cnt:,}</span>'
+                    f'<span class="type-pct">명 · {pct:.1f}%</span></div>'
+                    f'<div class="type-meta">평균 점수 <b>{avg_s:.3f}</b></div>'
+                    f'<div class="type-strat">▸ {s}</div>'
                     f'</div>'
                 )
             st.markdown(html + '</div>', unsafe_allow_html=True)
@@ -265,13 +326,13 @@ if df is not None:
             st.markdown(
                 f'<div class="alert-warn">'
                 f'<div class="alert-warn-title">신규 복합 이탈 패턴 감지</div>'
-                f'<div class="alert-warn-body">단일 유형으로 분류되지 않는 복합 패턴 고객 <b>{len(newp)}명</b>이 감지되었습니다. '
+                f'<div class="alert-warn-body">단일 유형으로 분류되지 않는 복합 패턴 고객 <b>{len(newp):,}명</b>이 감지되었습니다. '
                 f'온톨로지 신규 유형 추가를 검토해 주세요.<br>'
-                f'<span style="font-size:11.5px;color:#9A6B00">대상 · {ids_str} 등</span>'
+                f'<span style="font-size:11.5px;color:#9A6B00">대상 예시 · {ids_str} 등</span>'
                 f'</div></div>',
                 unsafe_allow_html=True)
 
-        if len(high) > 0:
+        if high_n > 0:
             new_combos, combo_examples = agent.detect_new_combos(
                 high.to_dict("records"), threshold=alert_min)
             if new_combos:
@@ -297,13 +358,57 @@ if df is not None:
                     f'{combo_rows}'
                     f'</div>', unsafe_allow_html=True)
 
-        if len(high) > 0:
+        # ── 고객 상세 — Top 5 미리보기 + 펼치기 ──
+        PREVIEW_N = 5
+        if high_n > 0:
             st.markdown(
-                '<div style="margin:24px 0 12px;font-size:14px;font-weight:700;color:var(--ink);letter-spacing:-0.02em">'
-                '고위험 이탈 고객 상세 분석</div>', unsafe_allow_html=True)
+                f'<div class="preview-head">'
+                f'<span class="preview-title">고위험 고객 상세 미리보기</span>'
+                f'<span class="preview-sub">전체 {high_n:,}명 중 상위 {min(PREVIEW_N, high_n):,}명 · 점수 내림차순</span>'
+                f'</div>', unsafe_allow_html=True)
+
             edit_mode = st.session_state.get("edit_mode", False)
-            for i, (_, r) in enumerate(high.head(10).iterrows()):
+            preview_rows = list(high.head(PREVIEW_N).iterrows())
+            for i, (_, r) in enumerate(preview_rows):
                 render_customer_card(r, edit_mode=edit_mode, idx=i)
+
+            # 전체 보기 (대량 처리: 표 형태)
+            if high_n > PREVIEW_N:
+                with st.expander(f"전체 {high_n:,}명 상세 보기 · 표 형태", expanded=False):
+                    detail_df = pd.DataFrame([
+                        {
+                            "고객ID": r["고객ID"],
+                            "Score": round(r["Score"], 4),
+                            "주요 유형": r["주요유형"] + (" · 신규패턴" if r["is_new"] else ""),
+                            "주요 원인 (기여도)": f'{r["주요원인"]} ({r["주요원인_pct"]}%)',
+                            "추천 오퍼": r["전략"],
+                        }
+                        for _, r in high.iterrows()
+                    ])
+                    st.dataframe(detail_df, use_container_width=True, hide_index=True, height=420)
+
+            # CSV 다운로드
+            csv_df = pd.DataFrame([
+                {
+                    "고객ID": r["고객ID"],
+                    "Score": round(r["Score"], 6),
+                    "주요유형": r["주요유형"],
+                    "신규패턴여부": "Y" if r["is_new"] else "N",
+                    "주요원인": r["주요원인"],
+                    "주요원인_기여도(%)": r["주요원인_pct"],
+                    "추천오퍼": r["전략"],
+                    "오퍼상세": r["전략상세"],
+                }
+                for _, r in high.iterrows()
+            ])
+            csv_bytes = csv_df.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                label=f"전체 {high_n:,}명 리스트 CSV 다운로드",
+                data=csv_bytes,
+                file_name=f"retention_targets_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv",
+                use_container_width=False,
+            )
         else:
             st.info(f"임계값 {thr:.2f} 이상인 고위험 고객이 없습니다. 슬라이더 값을 낮춰보세요.")
 
@@ -347,8 +452,9 @@ if df is not None:
                 '<div class="section-desc">선정된 고객에게 채널별 맞춤 오퍼가 발송되었습니다.</div>'
                 '</div>', unsafe_allow_html=True)
 
-            final_high = high.head(10).copy()
+            final_high = high.copy()
             excluded, modified = [], []
+            # 수정/제외는 미리보기에 노출된 상위 PREVIEW_N명에서만 반영됨
             for _, r in final_high.iterrows():
                 cid = r["고객ID"]
                 key = f"final_strat_{cid}"
@@ -360,7 +466,9 @@ if df is not None:
                         modified.append((cid, r["전략"], chosen))
 
             if not st.session_state.get("feedback_logged", False):
-                for _, r in final_high.iterrows():
+                # 피드백은 전체 대상의 샘플(상위 100명)만 누적 — 대량 처리 시 메모리 보호
+                fb_sample = final_high.head(100)
+                for _, r in fb_sample.iterrows():
                     cid = r["고객ID"]
                     chosen = st.session_state.get(f"final_strat_{cid}", r["전략"])
                     agent.add_feedback(
@@ -373,13 +481,13 @@ if df is not None:
                 st.session_state["feedback_logged"] = True
 
             target_cnt = len(final_high) - len(excluded)
-            st.success(f"{target_cnt}명 대상 초개인화 리텐션 캠페인이 실행되었습니다."
+            st.success(f"{target_cnt:,}명 대상 초개인화 리텐션 캠페인이 실행되었습니다."
                        + (f" · {len(excluded)}명 제외" if excluded else "")
                        + (f" · {len(modified)}건 오퍼 수정" if modified else ""))
 
-            tc = high.head(10)[~high.head(10)["고객ID"].isin(excluded)]["주요유형"].value_counts().to_dict()
+            tc = final_high[~final_high["고객ID"].isin(excluded)]["주요유형"].value_counts().to_dict()
             ri = "".join(
-                f'<div class="result-cell"><div class="rv">{cnt}</div><div class="rl">{TYPE_ICONS.get(tp,"")} {tp}</div></div>'
+                f'<div class="result-cell"><div class="rv">{cnt:,}</div><div class="rl">{TYPE_ICONS.get(tp,"")} {tp}</div></div>'
                 for tp, cnt in tc.items()
             )
             now = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -387,7 +495,7 @@ if df is not None:
                 f'<div class="result-box">'
                 f'<div class="result-time">{now} · 캠페인 실행 현황</div>'
                 f'<div class="result-grid">'
-                f'<div class="result-cell"><div class="rv">{target_cnt}</div><div class="rl">총 발송 대상</div></div>'
+                f'<div class="result-cell"><div class="rv">{target_cnt:,}</div><div class="rl">총 발송 대상</div></div>'
                 f'{ri}</div>'
                 f'<div class="result-foot">Push · LMS · 카카오톡 채널 자동 선택 완료 · 성과 데이터는 24시간 후 자동 수집됩니다</div>'
                 f'</div>', unsafe_allow_html=True)

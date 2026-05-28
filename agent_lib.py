@@ -84,13 +84,41 @@ header[data-testid="stHeader"] { background: transparent; height: 0; }
 @media (max-width: 640px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
 
 .type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-.type-cell { background: #FFFFFF; border: 1px solid var(--line); border-radius: 10px; padding: 16px 14px; }
+.type-cell { background: #FFFFFF; border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; }
 .type-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .type-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--primary-l); color: var(--primary); }
 .type-name { font-size: 13px; font-weight: 600; color: var(--ink); }
-.type-count { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; margin-bottom: 2px; }
-.type-strat { font-size: 11.5px; color: var(--sub); line-height: 1.4; }
+.type-count { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.type-pct { font-size: 12px; color: var(--sub); font-weight: 500; margin-left: 4px; }
+.type-meta { font-size: 11.5px; color: var(--sub); margin-top: 6px; padding-top: 6px; border-top: 1px solid #F3F4F6; line-height: 1.5; }
+.type-meta b { color: var(--ink); font-weight: 600; }
+.type-strat { font-size: 11.5px; color: var(--primary); margin-top: 4px; font-weight: 500; line-height: 1.4; }
 @media (max-width: 640px) { .type-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ── 점수 분포 차트 ── */
+.dist-block { background: #FFFFFF; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 14px; margin-bottom: 16px; }
+.dist-title { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; margin-bottom: 12px; }
+.dist-row { display: grid; grid-template-columns: 100px 1fr 90px; align-items: center; gap: 12px; margin-bottom: 6px; }
+.dist-label { font-size: 11.5px; color: var(--body); font-weight: 500; font-variant-numeric: tabular-nums; }
+.dist-track { height: 18px; background: #F1F3F5; border-radius: 4px; overflow: hidden; position: relative; }
+.dist-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.3s; }
+.dist-fill.high { background: var(--warn); }
+.dist-fill.mid  { background: var(--gold); }
+.dist-meta { font-size: 11.5px; color: var(--body); text-align: right; font-variant-numeric: tabular-nums; }
+.dist-meta b { color: var(--ink); font-weight: 700; }
+.dist-note { margin-top: 8px; padding-top: 8px; border-top: 1px solid #F3F4F6; font-size: 11.5px; color: var(--sub); line-height: 1.5; }
+.dist-note b { color: var(--ink); font-weight: 600; }
+
+/* ── 요약 라인 ── */
+.summary-line { background: #FAFBFC; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; font-size: 12.5px; color: var(--body); line-height: 1.6; }
+.summary-line b { color: var(--ink); font-weight: 700; }
+.summary-line .acc { color: var(--primary); font-weight: 700; }
+.summary-line .warn-t { color: var(--warn); font-weight: 700; }
+
+/* ── 미리보기 헤더 ── */
+.preview-head { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 0 8px; flex-wrap: wrap; gap: 6px; }
+.preview-title { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.preview-sub { font-size: 11.5px; color: var(--sub); }
 
 .cust-card { background: #FFFFFF; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 10px; }
 .cust-card.high { border-left: 3px solid var(--warn); }
