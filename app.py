@@ -122,17 +122,17 @@ st.markdown(
     '<div class="section-block">'
     '<div class="section-num">STEP 01</div>'
     '<div class="section-title">고객 데이터 업로드</div>'
-    '<div class="section-desc">분석할 고객 데이터를 업로드하거나, 더미 데이터로 바로 시연할 수 있습니다.</div>'
+    '<div class="section-desc">분석할 고객 데이터를 업로드하거나, 테스트 데이터로 바로 시연할 수 있습니다.</div>'
     '</div>', unsafe_allow_html=True)
 
 uploaded = st.file_uploader("CSV 또는 Excel · 컬럼: 고객번호, Var1~Var18, (선택) Score", type=["csv", "xlsx"])
-use_demo = st.button("내장 더미 데이터로 시연하기")
+use_demo = st.button("내장 테스트 데이터로 시연하기")
 
 df = None
 if use_demo or "demo" in st.session_state:
     st.session_state["demo"] = True
     df = generate_synthetic_customers(n=80, seed=2025, start_idx=1)
-    st.success(f"내장 더미 데이터 {len(df)}명 로드 완료")
+    st.success(f"내장 테스트 데이터 {len(df)}명 로드 완료")
 elif uploaded:
     try:
         df = pd.read_csv(uploaded) if uploaded.name.endswith(".csv") else pd.read_excel(uploaded)
