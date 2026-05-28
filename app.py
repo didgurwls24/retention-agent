@@ -416,7 +416,7 @@ if df is not None:
         st.markdown(
             '<div class="section-block">'
             '<div class="section-num">STEP 04</div>'
-            '<div class="section-title">현업 검토 및 캠페인 승인</div>'
+            '<div class="section-title">마케팅 검토 및 캠페인 승인</div>'
             '<div class="section-desc">Agent가 분석한 리텐션 전략을 검토하고 실행을 승인해 주세요.</div>'
             '</div>', unsafe_allow_html=True)
 
@@ -514,11 +514,11 @@ if df is not None:
             m2.metric("이탈 방어 예상 고객", f"{int(target_cnt*sim/100)}명")
             m3.metric("오퍼 비용 효율", "개선", "유형별 맞춤 오퍼 적용")
 
-            st.markdown(
-                '<div class="callout">'
-                '<div class="callout-text">"이제 현업의 역할은 데이터를 찾는 것이 아니라,<br>'
-                'Agent가 발견한 인사이트를 바탕으로 더 나은 마케팅 방식을 고민하는 것으로 전환됩니다."</div>'
-                '</div>', unsafe_allow_html=True)
+#            st.markdown(
+#                '<div class="callout">'
+#                '<div class="callout-text">"이제 현업의 역할은 데이터를 찾는 것이 아니라,<br>'
+#                'Agent가 발견한 인사이트를 바탕으로 더 나은 마케팅 방식을 고민하는 것으로 전환됩니다."</div>'
+#                '</div>', unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════
