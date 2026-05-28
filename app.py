@@ -284,7 +284,7 @@ def detect_new_pattern(df):
 st.markdown("""
 <div class="main-header">
     <div class="main-title">🎯 고객 이탈 원인 분석 및 초개인화 리텐션 Agent</div>
-    <div class="main-subtitle">AX기획부 (AX연구소) · XAI 기반 이탈 원인 진단 → 처방 → 자동 실행</div>
+    <div class="main-subtitle">XAI 기반 이탈 원인 진단 → 처방 → 자동 실행</div>
     <span class="main-badge">XAI 기반 · 온톨로지 분류 · Human-in-the-Loop</span>
 </div>
 """, unsafe_allow_html=True)
@@ -543,7 +543,6 @@ if df is not None:
 # ── 푸터 ──
 st.markdown("""
 <div style="text-align:center;padding:24px;color:#aaa;font-size:12px;margin-top:20px;">
-    AX기획부 (AX연구소) · 고객 이탈 원인 분석 및 초개인화 리텐션 Agent (XAI 기반)<br>
-    조창기 · 류일한 · 황지영 · 양혁진 · 신주희 · 박태준
+고객 이탈 원인 분석 및 초개인화 리텐션 Agent (XAI 기반)
 </div>
 """, unsafe_allow_html=True)
